@@ -1,122 +1,36 @@
-#include "header.h"
+﻿#include "header.h"
 typedef unsigned long long int UINT64;
-////������� ���������� ������������� ������� �������
-//typedef struct treeS
-//{
-//	struct tree_s* parent;
-//	struct tree_s* left;
-//	struct tree_s* right;
-//	unsigned char symbol;
-//	unsigned int weight;
-//} Tree;
-//
-//
-//void tableOfFrequency(char* fileName)
-//{
-//	UINT64 k = 0;//������� ��������� ����
-//	char curChar;//������� ����������� ������
-//	FILE* file = NULL;
-//	Tree symbols[256] = { 0 };
-//	Tree *psymbols;
-//	psymbols = (Tree*)malloc(256 * sizeof(Tree));
-//	if ((file = fopen(fileName, "rb")) == NULL)
-//		OPEN_ERR
-//		////////////
-//		int size = 15;
-//	for (int i = 0; i < 256; i++)
-//	{
-//		symbols[i].symbol = (unsigned char)i;
-//	}
-//	for (int i = 0; i < size; i++)
-//	{
-//		curChar = fgetc(file);
-//		for (int j = 0; j < 256; j++)
-//		{
-//			if (symbols[j].symbol==curChar)//���� ���������
-//			{
-//				symbols[j].weight++;
-//				break;
-//			}
-//		}
-//		//����� � �����������
-//		for (int i = 0; i < 256; i++)
-//			psymbols[i] = (*&symbols[i]);
-//		//���������� �� ��������
-//		Tree temp;
-//		for (int i = 1; i < 256; i++)
-//			for (int j = 0; j < 256 - 1; j++)
-//				if (symbols[j].weight < symbols[j + 1].weight) {
-//					temp = symbols[j];
-//					symbols[j] = symbols[j + 1];
-//					symbols[j + 1] = temp;
-//				}
-//	}
-//	//�����
-//	for (int j = 0; j < 256; j++)
-//	{
-//		printf("%c %d\n", symbols[j].symbol, symbols[j].weight);
-//	}
-//
-//
-//
-//	fclose(file);
-//}
-//typedef struct Tree {
-//	unsigned char symbol;
-//	struct Tree *left;
-//	struct Tree *right;
-//} Tree;
-//typedef struct List {
-//	UINT64 count;
-//	struct List *next;
-//	struct Tree *tree;
-//}List;
-
+struct _stat64 size;
 typedef struct Tree
 {
 	int symbol;
 	UINT64 count;
 	struct Tree *next, *left, *right;
 } Tree;
-/*������� ������������� ��������*/
-void createFrequencyArr(FILE *file, UINT64 *arr)
+void deleteNode(Tree* root) {
+	if (root) {
+		deleteNode(root->left);
+		deleteNode(root->right);
+		free(root);
+	}
+}
+/*функция подсчёта частоты встречаемости для каждого символа*/
+void createFrequencyArr(FILE *file, UINT64 *arr, UINT64 size)
 {
-	UINT64 size = 15;//�������� �� �������
 	for (UINT64 i = 0; i < size; i++)
 	{
 		arr[fgetc(file)]++;
 	}
 	return;
 }
-/*������� ������ ��� � ����*/
-int writeBits(FILE *out, int *position, char *buffer, char *value)
-{
-	int bit;
-	while (*value)
-	{
-		bit = *value - '0';
-		if (bit)
-		{
-			*buffer = (*buffer | 1 << (7 - *position));
-		}
-		*position++;
-		if (*position == 8)
-		{
-			fwrite(buffer, sizeof(char), 1, out);
-			*position = 0;
-			*buffer = 0;
-		}
-		*value++;
-	}
-}
 void insert(Tree **head, UINT64 count, int symbol,char mode)
 {
 	Tree* tmp =(Tree*)malloc(sizeof(Tree));
 	Tree* cur = NULL;
 	int flag = 0;
-	if (mode == 0)
+	if (mode == 0)//добавление в список
 	{
-		//���� ������ ����
+		//если список пуст
 		if (*head == NULL)
 		{
 			tmp->left = tmp->right = NULL;
@@ -126,7 +40,7 @@ void insert(Tree **head, UINT64 count, int symbol,char mode)
 			*head = tmp;
 			return;
 		}
-		if (count <= (*head)->count) /* �������� ����� ������ */
+		if (count <= (*head)->count) /* вставить перед первым */
 		{
 			tmp->count = count;
 			tmp->symbol = symbol;
@@ -137,13 +51,13 @@ void insert(Tree **head, UINT64 count, int symbol,char mode)
 		else
 		{
 			cur = (*head);
-			/* ���� ������� ��� ������� */
+			/* ищем позицию для вставки */
 			while ((flag == 0) && (cur->next != NULL))
 			{
 				if ((cur->count < count) && (cur->next->count >= count)) flag = 1;
 				cur = cur->next;
 			}
-			if (flag == 0) /* ������� �� ������� - �������� � ����� */
+			if (flag == 0) /* позиция не найдена - вставить в конец */
 			{
 				tmp->count = count;
 				tmp->symbol = symbol;
@@ -151,7 +65,7 @@ void insert(Tree **head, UINT64 count, int symbol,char mode)
 				tmp->next = NULL;
 				cur->next = tmp;
 			}
-			else /* ������� � �������� ������� */
+			else /* позиция в середине найдена */
 			{
 				tmp->count = count;
 				tmp->symbol = symbol;
@@ -161,10 +75,10 @@ void insert(Tree **head, UINT64 count, int symbol,char mode)
 			}
 		}
 	}
-	//��� �������� ������
+	//добавление в дерево
 	else 
 	{
-		if (count <= (*head)->count) /* �������� ����� ������ */
+		if (count <= (*head)->count) /* вставить перед первым */
 		{
 			tmp->count = (*head)->count + (*head)->next->count;
 			tmp->symbol = NODE;
@@ -176,13 +90,13 @@ void insert(Tree **head, UINT64 count, int symbol,char mode)
 		else
 		{
 			cur = (*head);
-			/* ���� ������� ��� ������� */
+			/* ищем позицию для вставки */
 			while ((flag == 0) && (cur->next != NULL))
 			{
 				if ((cur->count < count) && (cur->next->count >= count)) flag = 1;
 				cur = cur->next;
 			}
-			if (flag == 0) /* ������� �� ������� - �������� � ����� */
+			if (flag == 0) /* позиция не найдена - вставить в конец */
 			{
 				tmp->count = (*head)->count + (*head)->next->count;
 				tmp->symbol = NODE;
@@ -192,7 +106,7 @@ void insert(Tree **head, UINT64 count, int symbol,char mode)
 				cur->next = tmp;
 				(*head) = (*head)->next->next;
 			}
-			else /* ������� � �������� ������� */
+			else /* позиция в середине найдена */
 			{
 				tmp->count = (*head)->count + (*head)->next->count;
 				tmp->symbol = NODE;
@@ -205,6 +119,7 @@ void insert(Tree **head, UINT64 count, int symbol,char mode)
 		}
 	}
 }
+/*Создание дерева Хаффмана*/
 void makeHuffmanTree(Tree **head)
 {
 	UINT64 count;
@@ -214,93 +129,248 @@ void makeHuffmanTree(Tree **head)
 		insert(head, count, NODE, MAKETREE);
 	}
 }
-void buildCodeArray(Tree* root, UINT64 code_array[][2], UINT64 code, int length)
+/*Построение неравномерного кода с помощью дерева Хаффмана*/
+void CodeTable(Tree *root, char codes[256][256], char vrm[256])
 {
-	if (root == NULL) return;
-	if (root->left == NULL) {
-		code_array[root->symbol][0] = code;
-		code_array[root->symbol][1] = (length == 0 ? 1 : length);
+	char tmp[256];
+	int i = 0;
+	strcpy(tmp, vrm);
+	if (root->symbol >= 0)
+	{
+		strcpy(codes[root->symbol], tmp);
 		return;
 	}
-	buildCodeArray(root->left, code_array, code << 1, length + 1);
-	buildCodeArray(root->right, code_array, (code << 1) | 1, length + 1);
+	if (root->left)
+		CodeTable(root->left, codes, strcat(tmp, "0"));
+	while (tmp[i])
+		i++;
+	tmp[--i] = '\0';
+	if (root->right)
+		CodeTable(root->right, codes, strcat(tmp, "1"));
+}
+/*
+Функция записи бит
+pos - позиция в буфере(0 до 7)
+buffer - накапливаемый до байта набор битов
+value - массив символов, который мы добавляем
+*/
+void CharToString(char *SymBuf, char c)
+{
+	for (int i = 0; i < 8; i++)
+	{
+		SymBuf[i] += !!(c & (1 << (7 - i)));
+	}
+}
+UINT64 writeBits(FILE *file, int *position, unsigned char *buffer, char *value)
+{
+	int written = 0;//для подсчёта размера (в байтах)
+	int bit;
+	while (*value)
+	{
+		bit = *value - '0';
+		if (bit)
+		{
+			*buffer = (*buffer | 1 << (7 - (*position)));
+		}
+		(*position)++;
+		if ((*position) == 8)
+		{
+			fwrite(buffer, sizeof(char), 1, file);
+			written++;
+			(*position) = 0;
+			*buffer = 0;
+		}
+		value++;
+	}
+	return written;
+}
+/*Функция записи дерева в файл
+0-если узел, 1 - если лист, за 1 всегда следует код символа
+*/
+void WriteTree(Tree* root, unsigned char *buffer, int *position, FILE *outputFile)
+{
+	char SymBuf[] = { "00000000" };
+
+	if (root->symbol == -1)
+	{
+		writeBits(outputFile, position, buffer, "0");
+		WriteTree(root->left, buffer, position, outputFile);
+		WriteTree(root->right, buffer, position, outputFile);
+		return;
+	}
+
+	writeBits(outputFile, position, buffer, "1");
+	CharToString(SymBuf, (char)(root->symbol));
+	writeBits(outputFile, position, buffer, SymBuf);
+}
+/*Кодирование содержимого файла*/
+UINT64 writeData(char codes[256][256], int *position, unsigned char *buffer, FILE *inputFile,FILE *outputFile,UINT64 size)
+{
+	int c;
+	UINT64 writtenData = 0;
+	UINT64 count = 0;
+	while (count!=size) {
+		c = fgetc(inputFile);
+		writtenData+=writeBits(outputFile, position, buffer, codes[c]);
+		count++;
+	}
+	return writtenData;
+}
+char read_bit(FILE* in)
+{
+	static unsigned char buf = 0, counter = 0;
+	if (!counter)
+	{
+		fread(&buf, sizeof(char), 1, in);
+	}
+	counter++;
+	int bit = buf >> 7;
+	buf <<= 1;
+	if (counter == 8)
+		counter = 0;
+	return bit;
+}
+unsigned char read_char(FILE* in)
+{
+	unsigned char c = 0;
+	for (int i = 0; i < sizeof(char) * 8; i++)
+	{
+		c <<= 1;
+		c |= read_bit(in);
+	}
+	return c;
+}
+/*Восстановление дерева из файла*/
+Tree *createNode(FILE *inputFile)
+{
+	unsigned char c;
+	Tree *tmp = (Tree*)malloc(sizeof(Tree));
+	char bit = read_bit(inputFile);
+	if (bit == 0)
+	{
+		tmp->symbol = -1;
+		tmp->left = createNode(inputFile);
+		tmp->right = createNode(inputFile);
+		return tmp;
+	}
+	if (bit == 1)
+	{
+		c = read_char(inputFile);
+		tmp->symbol = c;
+		tmp->left = tmp->right = NULL;
+		return tmp;
+	}
+
 }
 /*******************************DEBUGER FUNCTIONS**********************************************************/
-void printLinkedList(Tree *head) {
-	if (!head) {
-		printf("Spisok pust");
-	}
-	while (head) {
-		printf("%d ", head->count);
-		printf("%c\n",head->symbol);
-		head = head->next;
-	}
-}
 void printTree(Tree* root) {
 	if (root == NULL)
 	{
 		//printf("Tree is empty");
 		return;
 	}
-	printf("%d ", root->count);
+	//printf("%d ", root->count);
 	if (root->symbol < 0) printf("%d\n", root->symbol);
 	else printf("%c\n", root->symbol);
 	printTree(root->left);
 	printTree(root->right);
 }
-void deleteNode(Tree* root) {
-	if (root) {
-		deleteNode(root->left);
-		deleteNode(root->right);
-		free(root);
-
-	}
-}
-Tree* deleteTree(Tree* root) {
-	deleteNode(root);
-	root = NULL;
-	return root;
-}
-void printCodeArray(const UINT64 array[][2]) // prints to "codes.txt"
-{
-	FILE* file = fopen("codes.txt", "w");
-	for (int i = 0; i < 256; i++)
-	{
-		if (array[i][1] > 0) {
-			fprintf(file, "%c: ", i);
-			for (int j = array[i][1] - 1; j >= 0; j--)
-				fprintf(file, "%lld", (array[i][0] >> j) & 1);
-			fprintf(file, "\n");
-		}
-	}
-	fclose(file);
-}
 /*********************************************************************************************************/
-int main(int argc, char **argv)
+void encode(FILE *inputFile, FILE *outputFile, UINT64 fileSize)
 {
-	UINT64 arr[256] = { 0 };
-	FILE *file = NULL;
+	UINT64 arr[256] = { 0 },//массив для хранения count
+		   placeBeforeTree = 0,
+		   writtenData = 0;
 	Tree *head = NULL;
-	if ((file = fopen("test.txt", "rb")) == NULL)
-		OPEN_ERR
-	createFrequencyArr(file, arr);
-	fclose(file);
-	for (int i = 96; i < 100; i++)
+	char vrm[256] = { '\0' };
+	char codes[256][256] = { '\0' };
+	int pos = 0;
+	unsigned char bufferTmp = 0; // Буфер в который будем писать
+	char posInWRTree;
+	createFrequencyArr(inputFile, arr, size.st_size);
+	/*Вставка элементов в список*/
+	for (int i = 0; i < 256; i++)
 	{
 		if (arr[i] != 0)
 		{
-			insert(&head, arr[i], i,MAKELIST);
+			insert(&head, arr[i], i, MAKELIST);
 		}
 	}
-	printLinkedList(head);
-	printf("\n");
 	makeHuffmanTree(&head);
-	printTree(head);
-	UINT64 codeArray[256][2] = { { 0ULL } }; // [[code, code length], ...]
-	buildCodeArray(head, codeArray, 1ULL, 0);
-	printCodeArray(codeArray);
-
-
-	
-
+	CodeTable(head, codes, vrm);// Построение кодов для символов
+	//сдвиг для записи размера закодированной части (без дерева и чего-либо)
+	placeBeforeTree = _ftelli64_nolock(outputFile);
+	_fseeki64_nolock(outputFile, sizeof(UINT64), SEEK_SET);
+	// Записываем дерево
+	WriteTree(head, &bufferTmp, &pos, outputFile);
+	_fseeki64_nolock(inputFile, 0, SEEK_SET);//сдвиг в начало инпут файла для кодирования
+	posInWRTree = pos;//запоминаем позицию в буфере при записи дерева в файл
+	writtenData = writeData(codes, &pos, &bufferTmp, inputFile, outputFile, size.st_size);
+	writtenData *= 8;
+	if (pos != 0)//дозапись последнего байта
+	{
+		fwrite(&bufferTmp, sizeof(char), 1, outputFile);
+		bufferTmp = 0;
+		writtenData += pos;
+		pos = 0;
+	}
+	writtenData -= posInWRTree;
+	_fseeki64_nolock(outputFile, placeBeforeTree, SEEK_SET);
+	//запись размера закодированной части
+	fwrite(&writtenData, sizeof(UINT64), 1, outputFile);
+	fcloseall;
+	deleteNode(head);
 }
+void decode(FILE *inputFile, FILE *outputFile)
+{
+	UINT64 dataSize = 0;
+	fread(&dataSize, sizeof(UINT64), 1, inputFile);
+	Tree *root = createNode(inputFile);
+	Tree *tmp = root;
+	unsigned char c;
+	/*Декодирование с помощью прохода по дереву*/
+	for (UINT64 i = 0; i < dataSize; i++)
+	{
+		c =	read_bit(inputFile);
+		if (c == 0)
+		{
+			tmp = tmp->left;
+		}
+		else
+		{
+			tmp = tmp->right;
+		}
+		if (tmp->symbol != -1)
+		{
+			fprintf(outputFile, "%c", tmp->symbol);
+			tmp = root;
+		}
+	}
+	deleteNode(root); root = NULL;
+	fcloseall;
+}
+int main(int argc, char **argv)
+{	//argv[1] - режим
+	FILE *inputFile, *outputFile;
+	if (!strcmp(argv[1], "-c"))
+	{
+		_stat64(argv[2], &size);
+		if (!(inputFile = fopen(argv[2], "rb")))
+			OPEN_ERR
+		if (!(outputFile = fopen(argv[3], "wb")))
+			CREATE_FILE_ERR
+		if(size.st_size!=0)
+			encode(inputFile,outputFile,size.st_size);
+		else printf("[ERORR]:Файл пуст");
+	}
+	if (!strcmp(argv[1], "-d"))
+	{
+		if (!(inputFile = fopen(argv[2], "rb")))
+			OPEN_ERR
+		if (!(outputFile = fopen(argv[3], "wb")))
+			CREATE_FILE_ERR
+		decode(inputFile, outputFile);
+	}
+	
+}
+
